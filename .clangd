@@ -1,0 +1,6 @@
+CompileFlags:
+  Add: [
+    "-isysroot", "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+    "--driver-mode=g++"
+  ]
+  Compiler: "/nix/store/2yfrcmkvspsrjhj283gdawqp37aghxva-clang-wrapper-21.1.8/bin/clang++"

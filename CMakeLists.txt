@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.12...3.26)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(NOT is_multi_config AND NOT (CMAKE_BUILD_TYPE OR DEFINED ENV{CMAKE_BUILD_TYPE}))
@@ -21,9 +22,7 @@ endif()
 
 find_package(OpenMP COMPONENTS CXX)
 
-set(SOURCES main.cpp tgaimage.cpp)
+set(SOURCES main.cpp tgaimage.cpp objmodel.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
-
-file(GENERATE OUTPUT .gitignore CONTENT "*")
