@@ -63,12 +63,23 @@ double signed_triangle_area(int ax, int ay, int bx, int by, int cx, int cy) {
     return -.5 * ((by - ay) * (bx + ax) + (cy - by) * (cx + bx) + (ay - cy) * (ax + cx));
 }
 
-void filled_triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer,
-                     TGAColor color) {
+TGAColor color_lerp(const TGAColor &ac, const TGAColor &bc, const TGAColor &cc, double a, double b,
+                    double c) {
+    uint8_t out_b = ac.bgra[0] * a + bc.bgra[0] * b + cc.bgra[0] * c;
+    uint8_t out_g = ac.bgra[1] * a + bc.bgra[1] * b + cc.bgra[1] * c;
+    uint8_t out_r = ac.bgra[2] * a + bc.bgra[2] * b + cc.bgra[2] * c;
+
+    return TGAColor{{out_b, out_g, out_r, 0}};
+}
+
+void filled_triangle(int ax, int ay, int bx, int by, int cx, int cy, int az, int bz, int cz,
+                     TGAImage &framebuffer, TGAColor color) {
     // Draw using a two-part method:
     // 1 - Compute bounding box of the triangle
     // 2 - For each pixel in the bounding box, compute whether it is
     //     inside the triangle. If yes, then draw it.
+
+    TGAColor ac{{255, 0, 0}}, bc{{0, 255, 255}}, cc{{255, 0, 255}};
 
     // 1 - Bounding box
     int min_x, min_y, max_x, max_y;
@@ -91,6 +102,9 @@ void filled_triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &f
                 continue;
             }
 
+            double sum = dot_ab + dot_bc + dot_ca;
+            double alpha = dot_ab / sum, beta = dot_bc / sum, gamma = dot_ca / sum;
+            TGAColor color = color_lerp(ac, bc, cc, alpha, beta, gamma);
             framebuffer.set(x, y, color);
         }
     }
@@ -129,7 +143,7 @@ int main(int argc, char **argv) {
         for (size_t i : {0, 1, 2}) {
             rnd[i] = std::rand() % 256;
         }
-        filled_triangle(a.x, a.y, b.x, b.y, c.x, c.y, framebuffer, rnd);
+        filled_triangle(a.x, a.y, b.x, b.y, c.x, c.y, 255, 127, 0, framebuffer, rnd);
     }
 
     framebuffer.write_tga_file("framebuffer.tga");
