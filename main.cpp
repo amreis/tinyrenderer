@@ -61,45 +61,33 @@ std::tuple<std::pair<int, int>, std::pair<int, int>> bounding_box(int ax, int ay
 
 void filled_triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer,
                      TGAColor color) {
-    // Sort by y-value
-    // int topx = 0, topy = 0, midx = 0, midy = 0, botx = 0, boty = 0;
-    std::array<std::pair<int, int>, 3> ys({{ax, ay}, {bx, by}, {cx, cy}});
-    std::sort(ys.begin(), ys.end(), [](std::pair<int, int> lhs, std::pair<int, int> rhs) -> bool {
-        return lhs.second < rhs.second;
-    });
-    auto [bot, mid, top] = ys;
-    auto [topx, topy] = top;
-    auto [midx, midy] = mid;
-    auto [botx, boty] = bot;
+    // Draw using a two-part method:
+    // 1 - Compute bounding box of the triangle
+    // 2 - For each pixel in the bounding box, compute whether it is
+    //     inside the triangle. If yes, then draw it.
 
-    // Key idea: the line from top to bot does not need to be changed when we reach
-    // mid with the scan line. It keeps going, therefore it is relative to the
-    // total height of the triangle.
+    // 1 - Bounding box
+    int min_x, min_y, max_x, max_y;
+    min_x = std::min({ax, bx, cx});
+    max_x = std::max({ax, bx, cx});
+    min_y = std::min({ay, by, cy});
+    max_y = std::max({ay, by, cy});
 
-    // Another thing: we do not need to worry about skipping pixels and drawing
-    // perfect lines here (as in the line() function). That is because we will
-    // fill the triangle anyway.
+    // 2 - check if pixel is inside triangle
+    int ab_x = bx - ax, ab_y = by - ay;
+    int bc_x = cx - bx, bc_y = cy - by;
+    int ca_x = ax - cx, ca_y = ay - cy;
+    for (int x = min_x; x <= max_x; ++x) {
+        for (int y = min_y; y <= max_y; ++y) {
+            int dot_ab = ab_y * (x - ax) - ab_x * (y - ay);
+            int dot_bc = bc_y * (x - bx) - bc_x * (y - by);
+            int dot_ca = ca_y * (x - cx) - ca_x * (y - cy);
 
-    int total_height = topy - boty;
-    if (topy != midy) {
-        int height_this_half = topy - midy;
-        for (int y = topy; y >= midy; --y) {
-            int xb = topx + ((botx - topx) * (topy - y)) / total_height;
-            int xa = topx + ((midx - topx) * (topy - y)) / height_this_half;
+            if (dot_ab < 0 || dot_bc < 0 || dot_ca < 0) {
+                continue;
+            }
 
-            for (int x = std::min(xa, xb); x <= std::max(xa, xb); ++x)
-                framebuffer.set(x, y, color);
-        }
-    }
-
-    if (midy != boty) {
-        int height_this_half = midy - boty;
-        for (int y = midy; y >= boty; --y) {
-            int xb = topx + ((botx - topx) * (topy - y)) / total_height;
-            int xa = midx + ((botx - midx) * (midy - y)) / height_this_half;
-
-            for (int x = std::min(xa, xb); x <= std::max(xa, xb); ++x)
-                framebuffer.set(x, y, color);
+            framebuffer.set(x, y, color);
         }
     }
 }
@@ -128,14 +116,6 @@ int main(int argc, char **argv) {
     filled_triangle(7, 45, 35, 100, 45, 60, framebuffer, red);
     filled_triangle(120, 35, 90, 5, 45, 110, framebuffer, white);
     filled_triangle(115, 83, 80, 90, 85, 120, framebuffer, green);
-
-    auto [min_bb1, max_bb1] = bounding_box(7, 45, 35, 100, 45, 60);
-    auto [min_bb2, max_bb2] = bounding_box(120, 35, 90, 5, 45, 110);
-    auto [min_bb3, max_bb3] = bounding_box(115, 83, 80, 90, 85, 120);
-
-    rect(min_bb1.first, min_bb1.second, max_bb1.first, max_bb1.second, framebuffer, red);
-    rect(min_bb2.first, min_bb2.second, max_bb2.first, max_bb2.second, framebuffer, white);
-    rect(min_bb3.first, min_bb3.second, max_bb3.first, max_bb3.second, framebuffer, green);
 
     framebuffer.write_tga_file("framebuffer.tga");
     return 0;
