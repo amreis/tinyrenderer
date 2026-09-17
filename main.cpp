@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <print>
@@ -14,8 +13,6 @@ constexpr TGAColor green = {{0, 255, 0, 255}};
 constexpr TGAColor red = {{0, 0, 255, 255}};
 constexpr TGAColor blue = {{255, 128, 64, 255}};
 constexpr TGAColor yellow = {{0, 200, 255, 255}};
-
-enum Hit { NONE, LEFT, RIGHT };
 
 void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color) {
     const bool steep = std::abs(bx - ax) < std::abs(by - ay);
