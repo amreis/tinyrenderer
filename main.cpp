@@ -59,6 +59,10 @@ std::tuple<std::pair<int, int>, std::pair<int, int>> bounding_box(int ax, int ay
             {std::max({ax, bx, cx}), std::max({ay, by, cy})}};
 }
 
+double signed_triangle_area(int ax, int ay, int bx, int by, int cx, int cy) {
+    return -.5 * ((by - ay) * (bx + ax) + (cy - by) * (cx + bx) + (ay - cy) * (ax + cx));
+}
+
 void filled_triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer,
                      TGAColor color) {
     // Draw using a two-part method:
@@ -102,20 +106,31 @@ void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuf
 Tup3<int> to_pixel_coords(const Vec3 &in, int w, int h) {
     // Obj coordinates go from -1 to +1. We want to map this to [0, w], [0, h]
 
-    int out_x = std::round((in.x + 1.0) * 0.5 * w);
-    int out_y = std::round((in.y + 1.0) * 0.5 * h);
+    int out_x = std::round((in.x + 1.0) * w / 2);
+    int out_y = std::round((in.y + 1.0) * h / 2);
 
     return {out_x, out_y, 0};
 }
 
 int main(int argc, char **argv) {
-    constexpr int width = 128;
-    constexpr int height = 128;
+    constexpr int width = 1024;
+    constexpr int height = 1024;
     TGAImage framebuffer(width, height, TGAImage::RGB);
 
-    filled_triangle(7, 45, 35, 100, 45, 60, framebuffer, red);
-    filled_triangle(120, 35, 90, 5, 45, 110, framebuffer, white);
-    filled_triangle(115, 83, 80, 90, 85, 120, framebuffer, green);
+    ObjModel model;
+    model.Load("./obj/african_head/african_head.obj");
+
+    for (int i = 0; i < model.faces.size(); ++i) {
+        auto a = to_pixel_coords(model.vertices[model.faces[i].x], width, height);
+        auto b = to_pixel_coords(model.vertices[model.faces[i].y], width, height);
+        auto c = to_pixel_coords(model.vertices[model.faces[i].z], width, height);
+
+        TGAColor rnd;
+        for (size_t i : {0, 1, 2}) {
+            rnd[i] = std::rand() % 256;
+        }
+        filled_triangle(a.x, a.y, b.x, b.y, c.x, c.y, framebuffer, rnd);
+    }
 
     framebuffer.write_tga_file("framebuffer.tga");
     return 0;
