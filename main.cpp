@@ -45,6 +45,20 @@ void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
     }
 }
 
+void rect(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color) {
+    for (int x = ax; x <= bx; ++x) {
+        for (int y = ay; y <= by; ++y) {
+            framebuffer.set(x, y, color);
+        }
+    }
+}
+
+std::tuple<std::pair<int, int>, std::pair<int, int>> bounding_box(int ax, int ay, int bx, int by,
+                                                                  int cx, int cy) {
+    return {{std::min({ax, bx, cx}), std::min({ay, by, cy})},
+            {std::max({ax, bx, cx}), std::max({ay, by, cy})}};
+}
+
 void filled_triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer,
                      TGAColor color) {
     // Sort by y-value
@@ -114,6 +128,15 @@ int main(int argc, char **argv) {
     filled_triangle(7, 45, 35, 100, 45, 60, framebuffer, red);
     filled_triangle(120, 35, 90, 5, 45, 110, framebuffer, white);
     filled_triangle(115, 83, 80, 90, 85, 120, framebuffer, green);
+
+    auto [min_bb1, max_bb1] = bounding_box(7, 45, 35, 100, 45, 60);
+    auto [min_bb2, max_bb2] = bounding_box(120, 35, 90, 5, 45, 110);
+    auto [min_bb3, max_bb3] = bounding_box(115, 83, 80, 90, 85, 120);
+
+    rect(min_bb1.first, min_bb1.second, max_bb1.first, max_bb1.second, framebuffer, red);
+    rect(min_bb2.first, min_bb2.second, max_bb2.first, max_bb2.second, framebuffer, white);
+    rect(min_bb3.first, min_bb3.second, max_bb3.first, max_bb3.second, framebuffer, green);
+
     framebuffer.write_tga_file("framebuffer.tga");
     return 0;
 }
