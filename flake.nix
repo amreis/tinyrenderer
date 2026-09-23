@@ -1,3 +1,4 @@
+# to enable shell: `nix shell .#`
 {
   description = "Development environment for Tinyrenderer (https://haqr.eu/tinyrenderer/)";
 
@@ -12,13 +13,13 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in
     {
-      devShells.${system}.default = pkgs.mkShell {
-        buildInputs = with pkgs; [
+      packages.${system}.default = pkgs.buildEnv {
+        name = "my-project-env";
+        paths = with pkgs; [
           cmake
           clang
           clang-tools
           lldb
-          # llvmPackages.openmp
         ];
       };
     };
