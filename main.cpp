@@ -11,6 +11,8 @@
 #include <iostream>
 #include <numbers>
 #include <print>
+#include <ranges>
+#include <sys/types.h>
 
 constexpr TGAColor white = {{255, 255, 255, 255}}; // attention, BGRA order
 constexpr TGAColor green = {{0, 255, 0, 255}};
@@ -79,53 +81,52 @@ TGAColor color_lerp(const TGAColor &ac, const TGAColor &bc, const TGAColor &cc, 
     return TGAColor{{out_b, out_g, out_r, 0}};
 }
 
-vec3<double> rot(vec3<double> v) {
-    double angle = std::numbers::pi / 6;
-    mat<double, 3, 3> rot = {
-        {std::cos(angle), 0, std::sin(angle), 0, 1, 0, -std::sin(angle), 0, std::cos(angle)}};
-    return rot.matmul(v);
-}
-
 void filled_triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, int cz,
-                     TGAImage &framebuffer, TGAImage &depthbuffer, TGAColor color) {
+                     TGAImage &framebuffer, std::vector<std::vector<double>> &depthbuffer,
+                     TGAColor color) {
     // Draw using a two-part method:
     // 1 - Compute bounding box of the triangle
     // 2 - For each pixel in the bounding box, compute whether it is
     //     inside the triangle. If yes, then draw it.
 
     // 1 - Bounding box
-    int min_x, min_y, max_x, max_y;
-    min_x = std::min({ax, bx, cx});
-    max_x = std::max({ax, bx, cx});
-    min_y = std::min({ay, by, cy});
-    max_y = std::max({ay, by, cy});
+    const auto &[mins, maxs] = bounding_box(ax, ay, bx, by, cx, cy);
+    auto [min_x, min_y] = mins;
+    auto [max_x, max_y] = maxs;
 
     // 2 - check if pixel is inside triangle
     int ab_x = bx - ax, ab_y = by - ay;
     int bc_x = cx - bx, bc_y = cy - by;
-    int ca_x = ax - cx, ca_y = ay - cy;
-    double total_area = signed_triangle_area(ax, ay, bx, by, cx, cy);
 
-    for (int x = min_x; x <= max_x; ++x) {
-        for (int y = min_y; y <= max_y; ++y) {
-            int dot_ab = ab_y * (x - ax) - ab_x * (y - ay);
-            int dot_bc = bc_y * (x - bx) - bc_x * (y - by);
-            int dot_ca = ca_y * (x - cx) - ca_x * (y - cy);
+    int total_area = ab_x * bc_y - ab_y * bc_x; // twice the area of the triangle.
+    if (total_area < 1)
+        return;
+    for (int x = std::max(min_x, 0); x <= std::min(max_x, framebuffer.width() - 1); ++x) {
+        for (int y = std::max(min_y, 0); y <= std::min(max_y, framebuffer.height() - 1); ++y) {
+            // P = (x, y). All areas below are also twice their true value.
+            // Not an issue though, they get divided by `total_area` which also
+            // holds a duplicated value.
+            int area_opp_a = (y - by) * (cx - bx) - (x - bx) * (cy - by); // cross between BP and BC
+            int area_opp_b = (y - cy) * (ax - cx) - (x - cx) * (ay - cy); // cross between CP and CA
+            int area_opp_c = (y - ay) * (bx - ax) - (x - ax) * (by - ay); // cross between AP and AB
+
             // double alpha = signed_triangle_area(x, y, bx, by, cx, cy) / total_area;
             // double beta  = signed_triangle_area(x, y, cx, cy, ax, ay) / total_area;
             // double gamma = signed_triangle_area(x, y, ax, ay, bx, by) / total_area;
-            
-            bool has_neg = dot_ab < 0 || dot_bc < 0 || dot_ca < 0;
-            bool has_pos = dot_ab > 0 || dot_bc > 0 || dot_ca > 0;
-            if (has_neg && has_pos) continue;
 
-            double sum = dot_ab + dot_bc + dot_ca;
-            double alpha = dot_ab / sum, beta = dot_bc / sum, gamma = dot_ca / sum;
-            int depth = std::round(alpha * az + beta * bz + gamma * cz);
-            if (depth > depthbuffer.get(x, y)[0]) {
+            bool has_neg = area_opp_a < 0 || area_opp_b < 0 || area_opp_c < 0;
+            bool has_pos = true || area_opp_a > 0 || area_opp_a > 0 || area_opp_a > 0;
+            if (has_neg && has_pos)
+                continue;
+
+            double alpha = static_cast<double>(area_opp_a) / total_area,
+                   beta = static_cast<double>(area_opp_b) / total_area,
+                   gamma = static_cast<double>(area_opp_c) / total_area;
+            double depth = (alpha * az + beta * bz + gamma * cz); // TODO: fix alpha/beta/gamma
+            if (depth > depthbuffer[x][y]) {
                 framebuffer.set(x, y, color);
-                uint8_t depth_u = depth;
-                depthbuffer.set(x, y, TGAColor({{(uint8_t)depth_u, depth_u, depth_u, depth_u}}));
+                depthbuffer[x][y] = depth;
+                // depthbuffer.set(x, y, TGAColor({{(uint8_t)depth_u, depth_u, depth_u, depth_u}}));
             }
         }
     }
@@ -138,6 +139,18 @@ void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuf
     line(cx, cy, ax, ay, framebuffer, color);
 }
 
+vec3<double> rot(vec3<double> v) {
+    double angle = std::numbers::pi / 6;
+    mat<double, 3, 3> rot = {
+        {std::cos(angle), 0, std::sin(angle), 0, 1, 0, -std::sin(angle), 0, std::cos(angle)}};
+    return rot.matmul(v);
+}
+
+vec3<double> persp(const vec3<double> &in) {
+    constexpr double c = 3.0;
+    return in / (1 - in[2] / c);
+}
+
 Tup3<int> project(const vec3<double> &in, int w, int h) {
     // Obj coordinates go from -1 to +1. We want to map this to [0, w], [0, h]
 
@@ -146,6 +159,17 @@ Tup3<int> project(const vec3<double> &in, int w, int h) {
     int out_z = std::round((in[2] + 1.0) * 256 / 2);
 
     return {out_x, out_y, out_z};
+}
+
+void convert_to_tga(const std::vector<std::vector<double>> &depthbuffer, TGAImage &out) {
+    auto flat_view = depthbuffer | std::views::join;
+    double max = std::ranges::max(flat_view);
+    std::println("{}", max);
+    for (int y = 0; y < out.height(); ++y) {
+        for (int x = 0; x < out.width(); ++x) {
+            out.set(x, y, {{(uint8_t)std::round(255 * depthbuffer[x][y] / max)}});
+        }
+    }
 }
 
 int main(int argc, char **argv) {
@@ -157,15 +181,15 @@ int main(int argc, char **argv) {
     constexpr int width = 2048;
     constexpr int height = 2048;
     TGAImage framebuffer(width, height, TGAImage::RGB);
-    TGAImage depthbuffer(width, height, TGAImage::GRAYSCALE);
+    std::vector<std::vector<double>> depthbuffer(width, std::vector<double>(height, 0.0));
 
     ObjModel model;
     model.Load(argv[1]);
 
     for (int i = 0; i < model.faces.size(); ++i) {
-        auto a = project(rot(model.vertices[model.faces[i].x]), width, height);
-        auto b = project(rot(model.vertices[model.faces[i].y]), width, height);
-        auto c = project(rot(model.vertices[model.faces[i].z]), width, height);
+        auto a = project(persp(rot(model.vertices[model.faces[i].x])), width, height);
+        auto b = project(persp(rot(model.vertices[model.faces[i].y])), width, height);
+        auto c = project(persp(rot(model.vertices[model.faces[i].z])), width, height);
 
         TGAColor rnd;
         for (size_t i : {0, 1, 2}) {
@@ -173,9 +197,12 @@ int main(int argc, char **argv) {
         }
         filled_triangle(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z, framebuffer, depthbuffer, rnd);
     }
-
+    std::println("Done drawing");
     framebuffer.write_tga_file("framebuffer.tga");
-    depthbuffer.write_tga_file("depthbuffer.tga");
+    TGAImage depthbuffer_tga(width, height, TGAImage::GRAYSCALE);
+    std::println("converting to TGA");
+    convert_to_tga(depthbuffer, depthbuffer_tga);
+    depthbuffer_tga.write_tga_file("depthbuffer.tga");
 
     tinyrenderer::vec2<double> var({1, 2});
     std::println("{}", var.data());

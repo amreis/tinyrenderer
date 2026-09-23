@@ -18,6 +18,7 @@
           clang
           clang-tools
           lldb
+          # llvmPackages.openmp
         ];
       };
     };

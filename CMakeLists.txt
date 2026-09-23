@@ -23,7 +23,7 @@ endif()
 
 find_package(OpenMP COMPONENTS CXX)
 
-set(SOURCES main.cpp tgaimage.cpp objmodel.cpp vec.cpp)
+set(SOURCES main.cpp tgaimage.cpp objmodel.cpp vec.h)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
