@@ -50,15 +50,6 @@ class vec {
         return std::forward<Self>(self)._data[i];
     }
 
-    // T &operator[](std::size_t i) {
-    //     assert(i >= 0 && i < N);
-    //     return this->_data[i];
-    // }
-    // const T &operator[](std::size_t i) const {
-    //     assert(i >= 0 && i < N);
-    //     return this->_data[i];
-    // }
-
     T dot(const Self &other) const {
         return std::ranges::fold_left(std::views::zip(_data, other._data) |
                                           std::views::transform([](auto &&tuple) {
