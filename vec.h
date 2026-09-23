@@ -34,10 +34,7 @@ class vec {
     // vec(const std::valarray<T> &array) : _data(array) {};
 
   public:
-    vec() {
-        _data.resize(N, 0);
-        x = _data[0];
-    };
+    vec() { _data.resize(N, 0); };
     template <typename... Ts>
     explicit vec(Ts... args)
         requires(sizeof...(Ts) == N && (std::is_same_v<T, Ts> && ...))
@@ -47,11 +44,6 @@ class vec {
     vec(std::array<T, N> list) : _data(list.begin(), N) {}
     vec(mat<T, N, 1> mat) : _data(mat._data) {}
     const std::valarray<T> &data() const { return _data; }
-
-    [[no_unique_address]] conditional_member_t<(N <= 2), std::add_lvalue_reference<T>> x;
-    [[no_unique_address]] conditional_member_t<(N <= 2), std::add_lvalue_reference<T>> y;
-    [[no_unique_address]] conditional_member_t<(N <= 3), std::add_lvalue_reference<T>> z;
-    [[no_unique_address]] conditional_member_t<(N <= 4), std::add_lvalue_reference<T>> w;
 
     T &operator[](std::size_t i) {
         assert(i >= 0 && i < N);
