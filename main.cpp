@@ -81,9 +81,9 @@ TGAColor color_lerp(const TGAColor &ac, const TGAColor &bc, const TGAColor &cc, 
     return TGAColor{{out_b, out_g, out_r, 0}};
 }
 
-void filled_triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, int cz,
-                     TGAImage &framebuffer, std::vector<std::vector<double>> &depthbuffer,
-                     TGAColor color) {
+void triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, int cz,
+              TGAImage &framebuffer, std::vector<std::vector<double>> &depthbuffer,
+              TGAColor color) {
     // Draw using a two-part method:
     // 1 - Compute bounding box of the triangle
     // 2 - For each pixel in the bounding box, compute whether it is
@@ -130,13 +130,6 @@ void filled_triangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int
             }
         }
     }
-}
-
-void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer,
-              TGAColor color) {
-    line(ax, ay, bx, by, framebuffer, color);
-    line(bx, by, cx, cy, framebuffer, color);
-    line(cx, cy, ax, ay, framebuffer, color);
 }
 
 vec3<double> rot(vec3<double> v) {
@@ -195,7 +188,7 @@ int main(int argc, char **argv) {
         for (size_t i : {0, 1, 2}) {
             rnd[i] = std::rand() % 256;
         }
-        filled_triangle(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z, framebuffer, depthbuffer, rnd);
+        triangle(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z, framebuffer, depthbuffer, rnd);
     }
     std::println("Done drawing");
     framebuffer.write_tga_file("framebuffer.tga");
