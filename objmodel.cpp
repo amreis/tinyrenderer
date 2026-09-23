@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <print>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -14,18 +15,17 @@ bool ObjModel::Load(std::string_view path) {
     }
     std::string line;
 
-    while (std::getline(file, line)) {
+    while (std::getline(file, line).good()) {
         if (line.starts_with("v ")) {
             // Vertex line
             std::stringstream ss(line.substr(2));
 
-            float x, y, z;
+            double x, y, z;
             ss >> x >> y >> z;
 
             this->vertices.emplace_back(x, y, z);
         } else if (line.starts_with("f ")) {
             // Face line
-            std::stringstream ss(line);
             auto pos = line.find(' ');
             auto newpos = pos;
             // -1 at the end since OBJ are 1-based.
@@ -46,5 +46,6 @@ bool ObjModel::Load(std::string_view path) {
 
         // We ignore other types of lines for now.
     }
+    std::println("Vertices: {}, Faces: {}", this->vertices.size(), this->faces.size());
     return true;
 }

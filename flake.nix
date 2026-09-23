@@ -17,6 +17,7 @@
           cmake
           clang
           clang-tools
+          lldb
         ];
       };
     };
