@@ -25,7 +25,7 @@ class mat;
 template <typename T, std::size_t N, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 class vec {
     using container = std::valarray<T>;
-    using self = vec<T, N>;
+    using Self = vec<T, N>;
 
     container _data;
     friend mat<T, N, N>;
@@ -45,16 +45,21 @@ class vec {
     vec(mat<T, N, 1> mat) : _data(mat._data) {}
     const std::valarray<T> &data() const { return _data; }
 
-    T &operator[](std::size_t i) {
-        assert(i >= 0 && i < N);
-        return this->_data[i];
-    }
-    const T &operator[](std::size_t i) const {
-        assert(i >= 0 && i < N);
-        return this->_data[i];
+    template <typename Self> auto &&operator[](this Self &&self, std::size_t i) {
+        assert(i >= 0 && i <= N);
+        return std::forward<Self>(self)._data[i];
     }
 
-    T dot(const self &other) const {
+    // T &operator[](std::size_t i) {
+    //     assert(i >= 0 && i < N);
+    //     return this->_data[i];
+    // }
+    // const T &operator[](std::size_t i) const {
+    //     assert(i >= 0 && i < N);
+    //     return this->_data[i];
+    // }
+
+    T dot(const Self &other) const {
         return std::ranges::fold_left(std::views::zip(_data, other._data) |
                                           std::views::transform([](auto &&tuple) {
                                               const auto &[fst, snd] = tuple;
@@ -63,7 +68,7 @@ class vec {
                                       (T)0, std::plus<T>());
     }
 
-    self cross(const self &other) const
+    Self cross(const Self &other) const
         requires(N == 3)
     {
         const auto &[a_x, a_y, a_z] = this->_data;
@@ -73,62 +78,62 @@ class vec {
     }
 
     // In-place addition with another vecN.
-    self &operator+=(const self &rhs) {
+    Self &operator+=(const Self &rhs) {
         _data += rhs._data;
         return *this;
     }
     // Addition with another vecN
-    friend self operator+(self lhs, const self &rhs) {
+    friend Self operator+(Self lhs, const Self &rhs) {
         lhs += rhs;
         return lhs;
     }
     // In-place addition with scalar.
-    self &operator+=(T rhs) {
+    Self &operator+=(T rhs) {
         _data += rhs;
         return *this;
     }
     // Addition with scalar.
-    friend self operator+(self lhs, const T &rhs) {
+    friend Self operator+(Self lhs, const T &rhs) {
         lhs += rhs;
         return lhs;
     }
-    self &operator*=(const self &rhs) {
+    Self &operator*=(const Self &rhs) {
         _data += rhs._data;
         return *this;
     }
-    friend self operator*(self lhs, const self &rhs) {
+    friend Self operator*(Self lhs, const Self &rhs) {
         lhs *= rhs;
         return lhs;
     }
-    self &operator*=(T rhs) {
+    Self &operator*=(T rhs) {
         _data *= rhs;
         return *this;
     }
-    friend self operator*(self lhs, T rhs) {
+    friend Self operator*(Self lhs, T rhs) {
         lhs *= rhs;
         return lhs;
     }
-    self &operator/=(const self &rhs) {
+    Self &operator/=(const Self &rhs) {
         _data /= rhs._data;
         return *this;
     }
-    friend self operator/(self lhs, const self &rhs) {
+    friend Self operator/(Self lhs, const Self &rhs) {
         lhs /= rhs;
         return lhs;
     }
-    self &operator/=(T rhs) {
+    Self &operator/=(T rhs) {
         _data /= rhs;
         return *this;
     }
-    friend self operator/(self lhs, T rhs) {
+    friend Self operator/(Self lhs, T rhs) {
         lhs /= rhs;
         return lhs;
     }
-    self operator-() const {
-        self other{-this->_data};
+    Self operator-() const {
+        Self other{-this->_data};
         return other;
     }
-    self operator+() const { return *this; }
+    Self operator+() const { return *this; }
 };
 
 template <typename T> using vec2 = vec<T, 2>;
@@ -151,7 +156,7 @@ concept square = (R == C && C == N);
 
 template <typename T, std::size_t R, std::size_t C, typename> class mat {
     using container = std::valarray<T>;
-    using self = mat<T, R, C>;
+    using Self = mat<T, R, C>;
 
     container _data;
     // mat(const std::valarray<T> &array) : _data(array) {};
@@ -213,74 +218,73 @@ template <typename T, std::size_t R, std::size_t C, typename> class mat {
     }
 
     // In-place addition with another vecN.
-    self &operator+=(const self &rhs) {
+    Self &operator+=(const Self &rhs) {
         _data += rhs._data;
         return *this;
     }
     // Addition with another vecN
-    friend self operator+(self lhs, const self &rhs) {
+    friend Self operator+(Self lhs, const Self &rhs) {
         lhs += rhs;
         return lhs;
     }
     // In-place addition with scalar.
-    self &operator+=(T rhs) {
+    Self &operator+=(T rhs) {
         _data += rhs;
         return *this;
     }
     // Addition with scalar.
-    friend self operator+(self lhs, const T &rhs) {
+    friend Self operator+(Self lhs, const T &rhs) {
         lhs += rhs;
         return lhs;
     }
-    self &operator*=(const self &rhs) {
+    Self &operator*=(const Self &rhs) {
         _data += rhs._data;
         return *this;
     }
-    friend self operator*(self lhs, const self &rhs) {
+    friend Self operator*(Self lhs, const Self &rhs) {
         lhs *= rhs;
         return lhs;
     }
-    self &operator*=(T rhs) {
+    Self &operator*=(T rhs) {
         _data *= rhs;
         return *this;
     }
-    friend self operator*(self lhs, T rhs) {
+    friend Self operator*(Self lhs, T rhs) {
         lhs *= rhs;
         return lhs;
     }
-    friend self operator*(T lhs, self rhs) {
+    friend Self operator*(T lhs, Self rhs) {
         rhs *= lhs;
         return rhs;
     }
-    self &operator/=(const self &rhs) {
+    Self &operator/=(const Self &rhs) {
         _data /= rhs._data;
         return *this;
     }
-    friend self operator/(self lhs, const self &rhs) {
+    friend Self operator/(Self lhs, const Self &rhs) {
         lhs /= rhs;
         return lhs;
     }
-    self &operator/=(T rhs) {
+    Self &operator/=(T rhs) {
         _data /= rhs;
         return *this;
     }
-    friend self operator/(self lhs, T rhs) {
+    friend Self operator/(Self lhs, T rhs) {
         lhs /= rhs;
         return lhs;
     }
-    self operator-() const {
-        self other;
+    Self operator-() const {
+        Self other;
         other._data = -this->data();
         return other;
     }
-    self operator+() const { return *this; }
+    Self operator+() const { return *this; }
 
-    mat<double, R, C> inv() const
+    mat<double, R, C> inv(this Self const &self)
         requires(R == C && C == 2)
     {
-        const mat<T, R, C> &self = *this;
         const auto &a = self[0, 0], b = self[0, 1], c = self[1, 0], d = self[1, 1];
-        double inv_scaling = det();
+        double inv_scaling = self.det();
         return (1.0 / inv_scaling) * mat<double, R, C>({d, -b, -c, a});
     }
     double det() const
@@ -289,10 +293,9 @@ template <typename T, std::size_t R, std::size_t C, typename> class mat {
         const mat<T, R, C> &self = *this;
         return self[0, 0] * self[1, 1] - self[0, 1] * self[1, 0];
     }
-    double det() const
+    double det(this Self const &self)
         requires(square<R, C, 3>)
     {
-        const mat<T, R, C> &self = *this;
         double positive = self[0, 0] * self[1, 1] * self[2, 2] +
                           self[0, 1] * self[1, 2] * self[2, 0] +
                           self[0, 2] * self[1, 0] * self[2, 1];
@@ -301,10 +304,9 @@ template <typename T, std::size_t R, std::size_t C, typename> class mat {
                           self[0, 1] * self[1, 0] * self[2, 2];
         return positive - negative;
     }
-    mat<double, R, C> inv() const
+    mat<double, R, C> inv(this Self const &self)
         requires(square<R, C, 3>)
     {
-        const mat<T, R, C> &self = *this;
         mat<double, R, C> adjugate;
 
         adjugate[0, 0] = self[1, 1] * self[2, 2] - self[2, 1] * self[1, 2];
@@ -317,7 +319,7 @@ template <typename T, std::size_t R, std::size_t C, typename> class mat {
         adjugate[2, 1] = self[0, 1] * self[2, 0] - self[2, 1] * self[0, 0];
         adjugate[2, 2] = self[0, 0] * self[1, 1] - self[1, 0] * self[0, 1];
 
-        return (1 / det()) * adjugate;
+        return (1 / self.det()) * adjugate;
     }
 };
 } // namespace tinyrenderer
